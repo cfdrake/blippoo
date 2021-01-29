@@ -57,7 +57,7 @@ Engine_Blippoo : CroneEngine {
       var pf2 = (freqPeak2 + (sah * fm_sah_peak) + (rung * fm_r_peak2)).abs;
       var sig = ~twinpeaks.(comparator,pf1,pf2,resonance,resonance);
       var fbout = LocalOut.ar([tri1,tri2,rungler1,rungler2,sah]);
-      Out.ar(out, Limiter.ar(sig / 100 * amp).dup);
+      Out.ar(out, Limiter.ar(sig / 10 * amp).dup);
     }.play(args: [\out, context.out_b], target: context.xg);
     
     this.addCommand("freqOscA", "f", { arg msg;
