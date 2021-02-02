@@ -6,8 +6,14 @@
 --
 -- K2/K3 page navigation
 -- E1/E2/E3 change page params
+--
+-- connect a MIDI Fighter Twister
+-- before boot (slot 1) for automap
 
 engine.name = "Blippoo"
+
+local midi_dev = nil
+local midi_mode = ""
 
 local page = 1
 local pages = {
@@ -15,13 +21,27 @@ local pages = {
   {name = "twin peak resonator", e1 = "resonance", e2 = "freq peak a", e3 = "freq peak b"}
 }
 
+local osc_spec = controlspec.new(0.01, 5000, 'exp', 0.01, 100, 'hz', 10/5000)
+local mod_spec = controlspec.new(0.01, 1000, 'exp', 0.01, 100, '', 10/1000)
+local filter_spec = controlspec.new(0.01, 8000, 'exp', 0.01, 100, '', 10/8000)
+local amp_spec = controlspec.new(0, 1, 'lin', 0.01, 1, '', 0.01)
+local res_spec = controlspec.new(0.01, 2, 'lin', 0.01, 0.1, '')
+
+local cc_map = {
+  "freq_osc_a", "freq_osc_b", "fm_a_b", "fm_b_a", "fm_r_a", "fm_r_b",
+  "fm_sah_a", "fm_sah_b", "freqPeak1", "freqPeak2", "resonance",
+  "fm_r_peak1", "fm_r_peak2", "fm_sah_peak", "amp"
+}
+
+local spec_map = {
+  osc_spec, osc_spec, mod_spec, mod_spec, mod_spec, mod_spec, mod_spec, 
+  mod_spec, mod_spec, filter_spec, filter_spec, res_spec,
+  mod_spec, mod_spec, mod_spec, amp_spec
+}
+
 local function setup_params()
   -- Setup oscillators
   params:add_separator("Source Oscillators")
-  
-  osc_spec = controlspec.new(0, 10000, 'lin', 0.1, 100, 'hz', 10/10000)
-  mod_spec = controlspec.new(0, 5000, 'lin', 0.1, 100, '', 10/5000)
-  filter_spec = controlspec.new(0, 8000, 'lin', 0.1, 100, '', 10/8000)
   
   params:add_control("freq_osc_a", "Freq. Osc. A", osc_spec)
   params:set_action("freq_osc_a", function(x) engine.freqOscA(x) end)
@@ -59,7 +79,7 @@ local function setup_params()
   params:add_control("freqPeak2", "Freq. Peak B", filter_spec)
   params:set_action("freqPeak2", function(x) engine.freqPeak2(x) end)
   
-  params:add_control("resonance", "Peak Resonance", controlspec.new(0.01, 2, 'lin', 0.1, 0.1, ''))
+  params:add_control("resonance", "Peak Resonance", res_spec)
   params:set_action("resonance", function(x) engine.resonance(x) end)
   
   -- Setup filter modulations
@@ -77,7 +97,7 @@ local function setup_params()
   -- Setup misc
   params:add_separator("Misc.")
   
-  params:add_control("amp", "Volume", controlspec.new(0, 1, 'lin', 0.01, 1, '', 0.01))
+  params:add_control("amp", "Volume", amp_spec)
   params:set_action("amp", function(x) engine.amp(x) end)
 end
 
@@ -99,14 +119,53 @@ local function setup_defaults()
   params:set("amp", 1)
 end
 
-local function disable_reverb()
-  audio:rev_off()
+local function mft_draw()
+  for cc=1,#cc_map do
+    local val = params:get(cc_map[cc])
+    local spec = spec_map[cc]
+    local midi_val = spec:unmap(val) * 127
+    
+    print("Initializing " .. cc_map[cc] .. "(" .. (cc - 1) .. ") to " .. midi_val)
+    midi_dev:cc(cc - 1, math.ceil(midi_val))
+  end
+end
+
+local function mft_event(data)
+  local msg = midi.to_msg(data)
+  
+  if msg.type ~= "cc" then
+    return
+  end
+  
+  local cc = msg.cc + 1
+  local val = msg.val
+  
+  if cc >= 1 and cc <= #cc_map then
+    local param = cc_map[cc]
+    local spec = spec_map[cc]
+    local pct = val / 127.0
+    local v = spec:map(pct)
+    
+    params:set(param, v)
+  end
+end
+
+local function setup_midi()
+  midi_dev = midi.connect()
+  
+  if midi_dev ~= nil and string.lower(midi_dev.name) == "midi fighter twister" then
+    midi_dev.event = mft_event
+    midi_mode = "[mft]"
+    
+    mft_draw()
+    redraw()
+  end
 end
 
 function init()
   setup_params()
   setup_defaults()
-  disable_reverb()
+  setup_midi()
 end
 
 function redraw()
@@ -125,6 +184,10 @@ function redraw()
   screen.text(p["e2"])
   screen.move(10, 50)
   screen.text(p["e3"])
+  
+  screen.level(1)
+  screen.move(0, 64)
+  screen.text(midi_mode)
   
   screen.update()
 end
