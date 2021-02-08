@@ -4,7 +4,7 @@
 -- by: @cfd90
 -- original sccode by: @olaf
 --
--- K2/K3 page navigation
+-- K1/K2/K3 page navigation
 -- E1/E2/E3 change page params
 --
 -- connect a MIDI Fighter Twister
@@ -12,13 +12,17 @@
 
 engine.name = "Blippoo"
 
+local hs = include("blippoo_halfsecond")
+
 local midi_dev = nil
 local midi_mode = ""
 
 local page = 1
+local last_page = page
 local pages = {
   {name = "source oscillators", e1 = "volume", e2 ="freq osc a", e3 = "freq osc b"},
-  {name = "twin peak resonator", e1 = "resonance", e2 = "freq peak a", e3 = "freq peak b"}
+  {name = "twin peak resonator", e1 = "resonance", e2 = "freq peak a", e3 = "freq peak b"},
+  {name = "delay", e1 = "volume", e2 = "rate", e3 = "feedback"}
 }
 
 local osc_spec = controlspec.new(0.01, 5000, 'exp', 0.01, 100, 'hz', 10/5000)
@@ -99,6 +103,10 @@ local function setup_params()
   
   params:add_control("amp", "Volume", amp_spec)
   params:set_action("amp", function(x) engine.amp(x) end)
+  
+  params:add_separator("Delay")
+  
+  hs.init()
 end
 
 local function setup_defaults()
@@ -175,7 +183,7 @@ function redraw()
   
   screen.level(15)
   screen.move(0, 10)
-  screen.text(p["name"] .. " (" .. page .. "/" .. #pages .. ")")
+  screen.text(p["name"])
   
   screen.level(5)
   screen.move(10, 30)
@@ -209,11 +217,26 @@ function enc(n, d)
     elseif n == 3 then
       params:delta("freqPeak2", d)
     end
+  elseif page == 3 then
+    if n == 1 then
+      params:delta("delay", d)
+    elseif n == 2 then
+      params:delta("delay_rate", d)
+    elseif n == 3 then
+      params:delta("delay_feedback", d)
+    end
   end
 end
 
 function key(n, z)
-  if n == 2 then
+  if n == 1 then
+    if z == 1 then
+      last_page = page
+      page = 3
+    else
+      page = last_page
+    end
+  elseif n == 2 then
     page = 1
   elseif n == 3 then
     page = 2
