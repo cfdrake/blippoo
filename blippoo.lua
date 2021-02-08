@@ -14,7 +14,7 @@ engine.name = "Blippoo"
 
 local hs = include("blippoo_halfsecond")
 
-local midi_dev = nil
+local midi_devices = {}
 local midi_mode = ""
 
 local page = 1
@@ -127,14 +127,16 @@ local function setup_defaults()
   params:set("amp", 1)
 end
 
-local function mft_draw()
+local function mft_draw_initial_state(i)
+  local dev = midi_devices[i]
+
   for cc=1,#cc_map do
     local val = params:get(cc_map[cc])
     local spec = spec_map[cc]
     local midi_val = spec:unmap(val) * 127
     
     print("Initializing " .. cc_map[cc] .. "(" .. (cc - 1) .. ") to " .. midi_val)
-    midi_dev:cc(cc - 1, math.ceil(midi_val))
+    dev:cc(cc - 1, math.ceil(midi_val))
   end
 end
 
@@ -159,14 +161,20 @@ local function mft_event(data)
 end
 
 local function setup_midi()
-  midi_dev = midi.connect()
+  midi_mode = ""
   
-  if midi_dev ~= nil and string.lower(midi_dev.name) == "midi fighter twister" then
-    midi_dev.event = mft_event
-    midi_mode = "[mft]"
+  for i=1,16 do
+    midi_devices[i] = midi.connect(i)
+    local dev = midi_devices[i]
     
-    mft_draw()
-    redraw()
+    if dev ~= nil and string.lower(dev.name) == "midi fighter twister" and dev.device ~= nil then
+      print("discovered mft on port " .. i)
+      
+      dev.event = mft_event
+      midi_mode = "mft"
+      mft_draw_initial_state(i)
+      redraw()
+    end
   end
 end
 
@@ -195,7 +203,9 @@ function redraw()
   
   screen.level(1)
   screen.move(0, 64)
-  screen.text(midi_mode)
+  if midi_mode ~= nil and midi_mode ~= "" then
+    screen.text("[" .. midi_mode .. "]")
+  end
   
   screen.update()
 end
