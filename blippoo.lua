@@ -12,7 +12,7 @@
 
 engine.name = "Blippoo"
 
-local hs = include("blippoo_halfsecond")
+local hs = include("lib/blippoo_halfsecond")
 
 local midi_devices = {}
 local midi_mode = ""
