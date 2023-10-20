@@ -33,16 +33,16 @@ function sc.init()
 	softcut.filter_rq(1, 2.0);
 
   params:add{id="delay", name="Delay", type="control", 
-    controlspec=controlspec.new(0,1,'lin',0,0.0,""),
+    controlspec=controlspec.new(0,1,'lin',0.05,0.0,""),
     action=function(x) softcut.level(1,x) end}
   params:add{id="delay_rate", name="Delay Rate", type="control", 
-    controlspec=controlspec.new(0.5,16.0,'lin',0,1,""),
+    controlspec=controlspec.new(0.5,16.0,'lin',0.05,1,""),
     action=function(x) softcut.rate(1,x) end}
   params:add{id="delay_feedback", name="Delay Feedback", type="control", 
-    controlspec=controlspec.new(0,1.0,'lin',0,0.75,""),
+    controlspec=controlspec.new(0,1.0,'lin',0.05,0.75,""),
     action=function(x) softcut.pre_level(1,x) end}
   params:add{id="delay_pan", name="Delay Pan", type="control", 
-    controlspec=controlspec.new(-1,1.0,'lin',0,0,""),
+    controlspec=controlspec.new(-1,1.0,'lin',0.05,0,""),
     action=function(x) softcut.pan(1,x) end}
 end
 
