@@ -20,10 +20,13 @@ local midi_mode = ""
 local page = 1
 local last_page = page
 local pages = {
-  {name = "source oscillators", e1 = "volume", e2 ="freq osc a", e3 = "freq osc b"},
-  {name = "twin peak resonator", e1 = "resonance", e2 = "freq peak a", e3 = "freq peak b"},
-  {name = "delay", e1 = "volume", e2 = "rate", e3 = "feedback"}
-}
+  {name = "source oscillators", e1 = "volume", e2 ="freq osc a", e3 = "freq osc b", 
+    v1 = "amp", v2 = "freq_osc_a", v3 = "freq_osc_b"},
+  {name = "twin peak resonator", e1 = "resonance", e2 = "freq peak a", e3 = "freq peak b",
+    v1 = "resonance", v2 = "freqPeak1", v3 = "freqPeak2"},
+  {name = "delay", e1 = "volume", e2 = "rate", e3 = "feedback",
+    v1 = "delay", v2 = "delay_rate", v3 = "delay_feedback"}
+  }
 
 local osc_spec = controlspec.new(0.01, 5000, 'exp', 0.01, 100, 'hz', 10/5000)
 local mod_spec = controlspec.new(0.01, 1000, 'exp', 0.01, 100, '', 10/1000)
@@ -182,31 +185,42 @@ function init()
   setup_params()
   setup_defaults()
   setup_midi()
+
+  redraw_metro = metro.init()
+  redraw_metro.time = 1/15
+  redraw_metro.event = function() redraw() end
+  redraw_metro:start()
 end
 
 function redraw()
   screen.clear()
-  
+
   p = pages[page]
-  
+
   screen.level(15)
   screen.move(0, 10)
   screen.text(p["name"])
-  
+
   screen.level(5)
   screen.move(10, 30)
   screen.text(p["e1"])
+  screen.move(116, 30)
+  screen.text_right(params:get(p["v1"]))
   screen.move(10, 40)
   screen.text(p["e2"])
+  screen.move(116, 40)
+  screen.text_right(params:get(p["v2"]))
   screen.move(10, 50)
   screen.text(p["e3"])
-  
+  screen.move(116, 50)
+  screen.text_right(params:get(p["v3"]))
+
   screen.level(1)
   screen.move(0, 64)
   if midi_mode ~= nil and midi_mode ~= "" then
     screen.text("[" .. midi_mode .. "]")
   end
-  
+
   screen.update()
 end
 
